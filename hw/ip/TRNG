@@ -1,1 +1,69 @@
+Code:
+`timescale 1ns / 1ps
+module bit32_rand_gen(
+input clk,
+input reset,
+output [31:0] rand_out
+);
+wire feedback=random[31]^random[21]^random[1]^random[0];
+reg [31:0]random,rand_next,random_done;
+reg [5:0]count,count_next;
+always@(posedge clk or posedge reset)
+begin
+if(reset)
+begin
+random&lt;=32&#39;hf;
+count&lt;=0;
+end
+else
+begin
+random&lt;=rand_next;
+count&lt;=count_next;
+end
+end
 
+always@(*)
+begin
+rand_next=random;
+count_next =count;
+rand_next={random[30:0],feedback};
+count_next=count+1;
+$monitor(&quot;%b&quot;,count);
+if(count == 32)
+begin
+count=0;
+random_done=random;
+end
+end
+assign rand_out=random_done;
+endmodule
+
+Test_bench:
+`timescale 1ns / 1ps
+module bit32_lfsr_tb;
+reg clk;
+reg reset;
+wire [31:0]rand_out;
+bit32_rand_gen uut(
+.clk(clk),
+.reset(reset),
+.rand_out(rand_out));
+initial begin
+clk=0;
+forever
+#50 clk=~clk;
+end
+initial
+begin
+reset=0;
+#100
+reset=1;
+#200
+reset=0;
+end
+
+initial
+begin
+$monitor(&quot;%b,%b&quot;,clk,rand_out);
+end
+endmodule
